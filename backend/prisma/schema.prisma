@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+// User model
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  name          String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  // Relations
+  tasks         Task[]
+  moods         Mood[]
+  routines      Routine[]
+  dailyPlans    DailyPlan[]
+  reflections   Reflection[]
+}
+
+// Firm Routine (non-negotiable blocks)
+model Routine {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String   // "Morning workout", "Sleep time"
+  startTime   String   // "07:00"
+  endTime     String   // "08:00"
+  days        String[] // ["monday", "tuesday", "wednesday"]
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Task model
+model Task {
+  id            String     @id @default(uuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title         String
+  description   String?
+  energy        Int        // 1-10 scale
+  timeEstimate  Int?       // minutes
+  focusType     String?    // "deep_work", "maintenance", "creative"
+  status        String     @default("pending") // "pending", "done", "moved"
+  scheduledFor  DateTime?  // Which day this task is for
+  completedAt   DateTime?
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@index([userId, scheduledFor])
+}
+
+// Mood & Energy tracking
+model Mood {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  mood        Int      // 1-5 scale
+  energy      Int      // 1-10
+  reflection  String?  // Optional user notes
+  timestamp   DateTime @default(now())
+  
+  @@index([userId, timestamp])
+}
+
+// AI-generated daily plans
+model DailyPlan {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date         DateTime // Which day this plan is for
+  taskOrder    String[] // Array of task IDs in suggested order
+  aiSuggestion String?  // AI's reasoning
+  userEdited   Boolean  @default(false)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([userId, date])
+}
+
+// Night reflection
+model Reflection {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date           DateTime
+  whatDrained    String?  // What drained energy
+  whatHelped     String?  // What helped
+  aiInsights     String?  // AI analysis
+  tomorrowPlan   String?  // AI suggestion for tomorrow
+  
+  createdAt      DateTime @default(now())
+  
+  @@unique([userId, date])
+}
