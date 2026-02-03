@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import taskRoutes from './routes/tasks';
 import { authMiddleware } from './middleware/auth';
 
 dotenv.config();
@@ -44,6 +45,9 @@ app.get('/api/protected', authMiddleware, (req, res) => {
     user: req.user?.email,
   });
 });
+
+app.use('/api/tasks', taskRoutes);
+
 
 // Start server
 app.listen(PORT, () => {

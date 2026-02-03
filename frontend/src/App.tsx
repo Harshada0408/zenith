@@ -1,79 +1,28 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Dashboard from './pages/Dashboard';
+import Tasks from './pages/Tasks';
 
-// export default App;
-import { useState } from 'react';
-import { signIn, signUp, signOut } from './services/auth';
-import { supabase } from './services/supabase';
-
-function App() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [status, setStatus] = useState('');
-
-  const handleSignup = async () => {
-    try {
-      await signUp(email, password);
-      setStatus('Signup successful');
-    } catch (e: any) {
-      setStatus(e.message);
-    }
-  };
-
-const handleLogin = async () => {
-  try {
-    await signIn(email, password);
-
-    const { data } = await supabase.auth.getSession();
-    console.log('SESSION:', data.session);
-    console.log('ACCESS TOKEN:', data.session?.access_token);
-
-    setStatus('Login successful (check console)');
-  } catch (e: any) {
-    setStatus(e.message);
-  }
-};
-
-
-  const handleLogout = async () => {
-    await signOut();
-    setStatus('Logged out');
-  };
-
+export default function App() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-6 rounded-xl shadow-md w-80 space-y-4">
-        <h1 className="text-2xl font-bold text-center">Zenith Auth</h1>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Public */}
+          <Route path="/login"  element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-        <input
-          className="w-full border p-2 rounded"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-        />
+          {/* Protected */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/tasks"     element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
 
-        <input
-          className="w-full border p-2 rounded"
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
-
-        <button onClick={handleSignup} className="w-full bg-blue-500 text-white p-2 rounded">
-          Sign Up
-        </button>
-
-        <button onClick={handleLogin} className="w-full bg-green-500 text-white p-2 rounded">
-          Login
-        </button>
-
-        <button onClick={handleLogout} className="w-full bg-gray-400 text-white p-2 rounded">
-          Logout
-        </button>
-
-        <p className="text-center text-sm">{status}</p>
-      </div>
-    </div>
+          {/* Catch-all → dashboard (ProtectedRoute will redirect to /login if not authed) */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
-
-export default App;
