@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
+import Mood from './pages/Mood';
 
 export default function App() {
   return (
@@ -18,6 +19,8 @@ export default function App() {
           {/* Protected */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/tasks"     element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+          <Route path="/mood" element={<ProtectedRoute><Mood /></ProtectedRoute>} />
+
 
           {/* Catch-all → dashboard (ProtectedRoute will redirect to /login if not authed) */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

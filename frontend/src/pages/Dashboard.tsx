@@ -48,10 +48,13 @@ export default function Dashboard() {
 
         {/* Feature cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Tasks — LIVE, clickable */}
+
+          {/* Tasks */}
           <Link
             to="/tasks"
-            className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 border border-blue-800/30 rounded-2xl p-6 hover:border-blue-600/50 transition-colors"
+            className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 
+                      border border-blue-800/30 rounded-2xl p-6 
+                      hover:border-blue-600/50 transition-colors cursor-pointer"
           >
             <div className="text-3xl mb-3">📋</div>
             <h3 className="text-lg font-semibold text-white mb-1">Tasks</h3>
@@ -61,18 +64,24 @@ export default function Dashboard() {
             </span>
           </Link>
 
-          {/* Mood — coming soon */}
-          <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 border border-purple-800/30 rounded-2xl p-6">
+          {/* Mood */}
+          <Link
+            to="/mood"
+            className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 
+                      border border-purple-800/30 rounded-2xl p-6 
+                      hover:border-purple-600/50 transition-colors cursor-pointer"
+          >
             <div className="text-3xl mb-3">🌙</div>
             <h3 className="text-lg font-semibold text-white mb-1">Mood</h3>
             <p className="text-slate-500 text-sm">Track your energy & mood</p>
-            <span className="inline-block mt-4 text-xs text-slate-600 bg-gray-800/50 px-3 py-1 rounded-full">
-              Coming soon
+            <span className="inline-block mt-4 text-xs text-purple-400 bg-purple-900/40 px-3 py-1 rounded-full">
+              Open →
             </span>
-          </div>
+          </Link>
 
-          {/* AI Plan — coming soon */}
-          <div className="bg-gradient-to-br from-indigo-900/30 to-indigo-800/20 border border-indigo-800/30 rounded-2xl p-6">
+          {/* AI Plan */}
+          <div className="bg-gradient-to-br from-indigo-900/30 to-indigo-800/20 
+                          border border-indigo-800/30 rounded-2xl p-6">
             <div className="text-3xl mb-3">🧠</div>
             <h3 className="text-lg font-semibold text-white mb-1">AI Plan</h3>
             <p className="text-slate-500 text-sm">Get your AI daily plan</p>
@@ -80,7 +89,9 @@ export default function Dashboard() {
               Coming soon
             </span>
           </div>
+
         </div>
+
       </main>
     </div>
   );
