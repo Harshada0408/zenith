@@ -1,11 +1,5 @@
-// frontend/src/services/taskService.ts
-
 import api from './api';
-import {
-  Task,
-  CreateTaskInput,
-  UpdateTaskInput,
-} from '../types/task';
+import type { Task, CreateTaskInput, UpdateTaskInput } from '../types/task';
 
 interface TasksResponse {
   success: boolean;
@@ -18,55 +12,66 @@ interface TaskResponse {
 }
 
 export const taskService = {
-  // Get tasks (defaults to today on backend)
+
+  // ───── GET TASKS ─────
   async getTasks(date?: string): Promise<Task[]> {
-    const query = date ? `?date=${date}` : '';
-    const { data } = await api.get<TasksResponse>(`/api/tasks${query}`);
+    const params = date ? `?date=${date}` : '';
+    const { data } = await api.get<TasksResponse>(`/api/tasks${params}`);
     return data.tasks;
   },
 
-  // Get single task
+  // ───── GET SINGLE TASK ─────
   async getTaskById(id: string): Promise<Task> {
     const { data } = await api.get<TaskResponse>(`/api/tasks/${id}`);
     return data.task;
   },
 
-  // Create task
+  // ───── CREATE TASK ─────
   async createTask(input: CreateTaskInput): Promise<Task> {
     const { data } = await api.post<TaskResponse>('/api/tasks', input);
     return data.task;
   },
 
-  // Update task (partial)
-  async updateTask(
-    id: string,
-    input: UpdateTaskInput
-  ): Promise<Task> {
-    const { data } = await api.put<TaskResponse>(
-      `/api/tasks/${id}`,
-      input
-    );
+  // ───── UPDATE TASK ─────
+  async updateTask(id: string, input: UpdateTaskInput): Promise<Task> {
+    const { data } = await api.put<TaskResponse>(`/api/tasks/${id}`, input);
     return data.task;
   },
 
-  // Delete task
+  // ───── DELETE TASK ─────
   async deleteTask(id: string): Promise<void> {
     await api.delete(`/api/tasks/${id}`);
   },
 
-  // Mark task as done
+  // ───── COMPLETE TASK ─────
   async completeTask(id: string): Promise<Task> {
-    const { data } = await api.post<TaskResponse>(
-      `/api/tasks/${id}/complete`
-    );
+    const { data } = await api.post<TaskResponse>(`/api/tasks/${id}/complete`);
     return data.task;
   },
 
-  // Move task to tomorrow
+  // ───── MOVE TO TOMORROW ─────
   async moveToTomorrow(id: string): Promise<Task> {
     const { data } = await api.post<TaskResponse>(
       `/api/tasks/${id}/move-to-tomorrow`
     );
     return data.task;
+  },
+
+  // ───── END DAY (NEW) ─────
+  async endDay(): Promise<{ archived: number }> {
+    const { data } = await api.post('/api/tasks/end-day');
+    return { archived: data.archived };
+  },
+
+  // ───── START DAY (NEW) ─────
+  async startDay(): Promise<{ activated: number }> {
+    const { data } = await api.post('/api/tasks/start-day');
+    return { activated: data.activated };
+  },
+
+  // ───── HISTORY (NEW) ─────
+  async getHistory(): Promise<Record<string, Task[]>> {
+    const { data } = await api.get('/api/tasks/history');
+    return data.history;
   },
 };

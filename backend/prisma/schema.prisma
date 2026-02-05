@@ -49,17 +49,16 @@ model Routine {
   updatedAt   DateTime @updatedAt
 }
 
-// Task model
 model Task {
   id            String     @id @default(uuid())
   userId        String
   user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   title         String
   description   String?
 
-  energy        Int?       // OPTIONAL now (for AI later)
-  priority      String?    // NEW: "high" | "medium" | "low"
+  energy        Int?          // 🔥 optional now
+  priority      String?       // 🔥 NEW
 
   timeEstimate  Int?
   focusType     String?
@@ -67,14 +66,13 @@ model Task {
 
   scheduledFor  DateTime?
   completedAt   DateTime?
-  archivedAt    DateTime?  // NEW: used for History page
+  archivedAt    DateTime?     // 🔥 NEW
 
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  
+
   @@index([userId, scheduledFor])
 }
-
 
 // Mood & Energy tracking
 model Mood {

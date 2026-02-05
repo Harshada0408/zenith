@@ -1,98 +1,301 @@
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuthContext } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
+import { taskService } from '../services/taskService';
+import { moodService } from '../services/moodService';
+import type { Task, CreateTaskInput, TaskPriority, FocusType, PRIORITY_CONFIG } from '../types/task';
+import {MOOD_LABELS } from '../types/mood';
+import type { MoodEntry} from '../types/mood';
 
 export default function Dashboard() {
-  const { user, logout } = useAuthContext();
-  const navigate = useNavigate();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [latestMood, setLatestMood] = useState<MoodEntry | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<TaskPriority | ''>('');
+  const [timeEstimate, setTimeEstimate] = useState('');
+  const [focusType, setFocusType] = useState<FocusType | ''>('');
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const [filterFocus, setFilterFocus] = useState<FocusType | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'priority' | 'time' | 'alpha'>('priority');
+  const [movedCount, setMovedCount] = useState(0);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      const [tasksData, moodData] = await Promise.all([
+        taskService.getTasks(),
+        moodService.getLatest(),
+      ]);
+      setTasks(tasksData);
+      setLatestMood(moodData);
+
+      const moved = tasksData.filter((t) => t.status === 'moved');
+      setMovedCount(moved.length);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreate() {
+    if (!title.trim()) {
+      setFormError('Title required');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const input: CreateTaskInput = {
+        title,
+        description: description || undefined,
+        priority: priority || undefined,
+        timeEstimate: timeEstimate ? Number(timeEstimate) : undefined,
+        focusType: focusType || undefined,
+      };
+
+      const newTask = await taskService.createTask(input);
+      setTasks((prev) => [newTask, ...prev]);
+      resetForm();
+      setShowForm(false);
+    } catch (err: any) {
+      setFormError(err?.response?.data?.error || 'Create failed');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function resetForm() {
+    setTitle('');
+    setDescription('');
+    setPriority('');
+    setTimeEstimate('');
+    setFocusType('');
+    setFormError('');
+  }
+
+  async function handleComplete(id: string) {
+    const updated = await taskService.completeTask(id);
+    setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+  }
+
+  async function handleMove(id: string) {
+    const updated = await taskService.moveToTomorrow(id);
+    setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+  }
+
+  async function handleDelete(id: string) {
+    await taskService.deleteTask(id);
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  async function handleStartDay() {
+    await taskService.startDay();
+    await loadData();
+  }
+
+  async function handleEndDay() {
+    await taskService.endDay();
+    await loadData();
+  }
+
+  const pending = tasks.filter((t) => t.status === 'pending');
+  const done = tasks.filter((t) => t.status === 'done');
+  const tomorrow = tasks.filter((t) => t.status === 'moved');
+
+  let filtered = pending;
+  if (filterFocus !== 'all') {
+    filtered = filtered.filter((t) => t.focusType === filterFocus);
+  }
+
+  let sorted = [...filtered];
+
+  if (sortBy === 'priority') {
+    const order = { high: 1, medium: 2, low: 3 };
+    sorted.sort((a, b) => {
+      const ap = a.priority ? order[a.priority] : 999;
+      const bp = b.priority ? order[b.priority] : 999;
+      return ap - bp;
+    });
+  }
+
+  if (sortBy === 'time') {
+    sorted.sort((a, b) => (a.timeEstimate || 999) - (b.timeEstimate || 999));
+  }
+
+  if (sortBy === 'alpha') {
+    sorted.sort((a, b) => a.title.localeCompare(b.title));
+  }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* ── Nav ──────────────────────────────────────────────── */}
-      <nav className="border-b border-gray-800 px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">Z</span>
-            </div>
-            <span className="text-lg font-semibold">Zenith</span>
-          </div>
+    <div className="flex-1 px-8 py-8 overflow-y-auto">
+      <div className="max-w-4xl">
 
-          <div className="flex items-center gap-4">
-            <span className="text-slate-500 text-sm">{user?.email}</span>
+        {/* HEADER */}
+        <div className="flex justify-between mb-6">
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+
+          <button
+            onClick={handleEndDay}
+            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-slate-400 hover:text-white"
+          >
+            End Today
+          </button>
+        </div>
+
+        {/* MOOD */}
+        {latestMood && (
+          <div className="bg-purple-900/20 border border-purple-700 p-4 rounded-xl mb-6 flex justify-between">
+            <div className="flex gap-3 items-center">
+              <span className="text-3xl">{MOOD_LABELS[latestMood.mood].emoji}</span>
+              <div>
+                <p className="text-white">Feeling {MOOD_LABELS[latestMood.mood].label}</p>
+                <p className="text-slate-400 text-sm">Energy {latestMood.energy}/10</p>
+              </div>
+            </div>
+
+            <a href="/mood" className="text-purple-400 text-sm">
+              Log Mood →
+            </a>
+          </div>
+        )}
+
+        {/* START DAY */}
+        {movedCount > 0 && (
+          <div className="bg-indigo-900/20 border border-indigo-700 p-4 rounded-xl mb-6 flex justify-between">
+            <p className="text-indigo-400">
+              You have {movedCount} task from yesterday
+            </p>
+
             <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-lg border border-gray-700 text-slate-400 hover:text-white hover:border-gray-600 text-sm transition-colors"
+              onClick={handleStartDay}
+              className="bg-indigo-500 px-3 py-1 rounded text-sm"
             >
-              Logout
+              Start Day
             </button>
           </div>
-        </div>
-      </nav>
+        )}
 
-      {/* ── Main ─────────────────────────────────────────────── */}
-      <main className="max-w-4xl mx-auto px-6 py-10">
-        {/* Greeting */}
-        <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/30 border border-indigo-800/30 rounded-2xl p-8 mb-8">
-          <h1 className="text-3xl font-bold mb-1">
-            Good day 👋
-          </h1>
-          <p className="text-slate-400">
-            What do you want to tackle today?
-          </p>
-        </div>
+        {/* ADD TASK */}
+        <div className="mb-6">
 
-        {/* Feature cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="flex justify-between mb-4">
+            <h2 className="text-lg text-white">Today's Tasks</h2>
 
-          {/* Tasks */}
-          <Link
-            to="/tasks"
-            className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 
-                      border border-blue-800/30 rounded-2xl p-6 
-                      hover:border-blue-600/50 transition-colors cursor-pointer"
-          >
-            <div className="text-3xl mb-3">📋</div>
-            <h3 className="text-lg font-semibold text-white mb-1">Tasks</h3>
-            <p className="text-slate-500 text-sm">Manage your daily tasks</p>
-            <span className="inline-block mt-4 text-xs text-blue-400 bg-blue-900/40 px-3 py-1 rounded-full">
-              Open →
-            </span>
-          </Link>
-
-          {/* Mood */}
-          <Link
-            to="/mood"
-            className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 
-                      border border-purple-800/30 rounded-2xl p-6 
-                      hover:border-purple-600/50 transition-colors cursor-pointer"
-          >
-            <div className="text-3xl mb-3">🌙</div>
-            <h3 className="text-lg font-semibold text-white mb-1">Mood</h3>
-            <p className="text-slate-500 text-sm">Track your energy & mood</p>
-            <span className="inline-block mt-4 text-xs text-purple-400 bg-purple-900/40 px-3 py-1 rounded-full">
-              Open →
-            </span>
-          </Link>
-
-          {/* AI Plan */}
-          <div className="bg-gradient-to-br from-indigo-900/30 to-indigo-800/20 
-                          border border-indigo-800/30 rounded-2xl p-6">
-            <div className="text-3xl mb-3">🧠</div>
-            <h3 className="text-lg font-semibold text-white mb-1">AI Plan</h3>
-            <p className="text-slate-500 text-sm">Get your AI daily plan</p>
-            <span className="inline-block mt-4 text-xs text-slate-600 bg-gray-800/50 px-3 py-1 rounded-full">
-              Coming soon
-            </span>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="bg-indigo-500 px-4 py-2 rounded text-sm text-white"
+            >
+              {showForm ? 'Cancel' : '+ Add Task'}
+            </button>
           </div>
 
-        </div>
+          {showForm && (
+            <div className="bg-gray-900 border border-gray-800 p-4 rounded-xl mb-4">
 
-      </main>
+              {formError && (
+                <p className="text-red-400 text-sm mb-3">{formError}</p>
+              )}
+
+              <input
+                placeholder="Title"
+                className="w-full mb-3 p-2 bg-gray-800 border border-gray-700 rounded"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+
+              <textarea
+                placeholder="Description"
+                className="w-full mb-3 p-2 bg-gray-800 border border-gray-700 rounded"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+
+              <div className="flex gap-3 mb-3">
+
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                  className="flex-1 p-2 bg-gray-800 border border-gray-700 rounded"
+                >
+                  <option value="">Priority</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+
+                <input
+                  placeholder="Minutes"
+                  type="number"
+                  value={timeEstimate}
+                  onChange={(e) => setTimeEstimate(e.target.value)}
+                  className="flex-1 p-2 bg-gray-800 border border-gray-700 rounded"
+                />
+
+                <select
+                  value={focusType}
+                  onChange={(e) => setFocusType(e.target.value as FocusType)}
+                  className="flex-1 p-2 bg-gray-800 border border-gray-700 rounded"
+                >
+                  <option value="">Focus</option>
+                  <option value="deep_work">Deep Work</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="creative">Creative</option>
+                </select>
+
+              </div>
+
+              <button
+                onClick={handleCreate}
+                className="w-full bg-indigo-500 py-2 rounded text-white"
+              >
+                {submitting ? 'Creating...' : 'Add Task'}
+              </button>
+
+            </div>
+          )}
+
+          {/* TASK LIST */}
+          {sorted.map((task) => (
+            <div key={task.id} className="bg-gray-900 border border-gray-800 p-4 rounded mb-2 flex justify-between">
+
+              <div>
+                <h3 className="text-white">{task.title}</h3>
+
+                {task.priority && (
+                  <span className="text-xs text-slate-400">
+                    {PRIORITY_CONFIG[task.priority].badge} {PRIORITY_CONFIG[task.priority].label}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+
+                <button onClick={() => handleComplete(task.id)} className="text-green-400 text-sm">
+                  Done
+                </button>
+
+                <button onClick={() => handleMove(task.id)} className="text-yellow-400 text-sm">
+                  Tomorrow
+                </button>
+
+                <button onClick={() => handleDelete(task.id)} className="text-red-400 text-sm">
+                  Delete
+                </button>
+
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
