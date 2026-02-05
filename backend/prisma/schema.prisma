@@ -57,18 +57,24 @@ model Task {
   
   title         String
   description   String?
-  energy        Int        // 1-10 scale
-  timeEstimate  Int?       // minutes
-  focusType     String?    // "deep_work", "maintenance", "creative"
-  status        String     @default("pending") // "pending", "done", "moved"
-  scheduledFor  DateTime?  // Which day this task is for
+
+  energy        Int?       // OPTIONAL now (for AI later)
+  priority      String?    // NEW: "high" | "medium" | "low"
+
+  timeEstimate  Int?
+  focusType     String?
+  status        String     @default("pending")
+
+  scheduledFor  DateTime?
   completedAt   DateTime?
-  
+  archivedAt    DateTime?  // NEW: used for History page
+
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   
   @@index([userId, scheduledFor])
 }
+
 
 // Mood & Energy tracking
 model Mood {
