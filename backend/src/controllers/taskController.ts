@@ -282,33 +282,28 @@ function getTomorrowStart(): Date {
 // Creates a new task. scheduledFor defaults to today if not sent.
 export async function createTask(req: Request, res: Response) {
   const userId = req.user!.id;
-  const { title, description, energy, timeEstimate, focusType, scheduledFor } = req.body;
+  const { title, description, priority, timeEstimate, focusType } = req.body;
 
-  // Validate required fields
-  if (!title || energy === undefined) {
-    res.status(400).json({ error: 'title and energy are required' });
-    return;
-  }
-
-  if (energy < 1 || energy > 10) {
-    res.status(400).json({ error: 'energy must be between 1 and 10' });
-    return;
+  // ✅ Only title is required
+  if (!title || title.trim().length === 0) {
+    return res.status(400).json({ error: 'Title is required' });
   }
 
   const task = await prisma.task.create({
     data: {
       userId,
-      title,
+      title: title.trim(),
       description: description || null,
-      energy,
-      timeEstimate: timeEstimate || null,
+      priority: priority || null,
+      timeEstimate: timeEstimate ? Number(timeEstimate) : null,
       focusType: focusType || null,
-      scheduledFor: scheduledFor ? new Date(scheduledFor) : getTodayStart(),
+      energy: null, // 🔥 AI will fill later
     },
   });
 
   res.status(201).json({ success: true, task });
 }
+
 
 // ─── GET /api/tasks ──────────────────────────────────────────
 // Returns tasks for a given date. Defaults to today.
