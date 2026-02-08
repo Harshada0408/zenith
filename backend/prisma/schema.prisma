@@ -25,6 +25,9 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   
+  // DAY STATE 
+  activeDayStartedAt DateTime?
+
   // Relations
   tasks         Task[]
   moods         Mood[]
@@ -67,6 +70,7 @@ model Task {
   scheduledFor  DateTime?
   completedAt   DateTime?
   archivedAt    DateTime?     // 🔥 NEW
+  dayStartedAt  DateTime? @db.Timestamp(6)
 
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt

@@ -272,58 +272,58 @@ export async function moveToTomorrow(req: Request, res: Response) {
 // ─── POST /api/tasks/end-day ──────────────────────────────────
 // Archives all today's tasks (done + pending).
 // Sets archivedAt timestamp so they move to History.
-export async function endDay(req: Request, res: Response) {
-  const userId = req.user!.id;
-  const today = getTodayStart();
-  const tomorrow = getTomorrowStart();
+// export async function endDay(req: Request, res: Response) {
+//   const userId = req.user!.id;
+//   const today = getTodayStart();
+//   const tomorrow = getTomorrowStart();
 
-  // Find all tasks scheduled for today that aren't archived yet
-  const tasksToArchive = await prisma.task.updateMany({
-    where: {
-      userId,
-      scheduledFor: {
-        gte: today,
-        lt: tomorrow,
-      },
-      archivedAt: null,
-    },
-    data: {
-      archivedAt: new Date(),
-    },
-  });
+//   // Find all tasks scheduled for today that aren't archived yet
+//   const tasksToArchive = await prisma.task.updateMany({
+//     where: {
+//       userId,
+//       scheduledFor: {
+//         gte: today,
+//         lt: tomorrow,
+//       },
+//       archivedAt: null,
+//     },
+//     data: {
+//       archivedAt: new Date(),
+//     },
+//   });
 
-  res.json({ success: true, archived: tasksToArchive.count });
-}
+//   res.json({ success: true, archived: tasksToArchive.count });
+// }
 
 // ─── POST /api/tasks/start-day ────────────────────────────────
 // Activates tasks from yesterday that were moved to "tomorrow".
 // Changes their scheduledFor from yesterday to today.
-export async function startDay(req: Request, res: Response) {
-  const userId = req.user!.id;
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
+// export async function startDay(req: Request, res: Response) {
+//   const userId = req.user!.id;
+//   const yesterday = new Date();
+//   yesterday.setDate(yesterday.getDate() - 1);
+//   yesterday.setHours(0, 0, 0, 0);
 
-  const today = getTodayStart();
+//   const today = getTodayStart();
 
-  // Find tasks from yesterday with status "moved"
-  const movedTasks = await prisma.task.updateMany({
-    where: {
-      userId,
-      status: 'moved',
-      scheduledFor: {
-        gte: yesterday,
-        lt: today,
-      },
-    },
-    data: {
-      scheduledFor: today,
-      status: 'pending', // Reset to pending for the new day
-    },
-  });
+//   // Find tasks from yesterday with status "moved"
+//   const movedTasks = await prisma.task.updateMany({
+//     where: {
+//       userId,
+//       status: 'moved',
+//       scheduledFor: {
+//         gte: yesterday,
+//         lt: today,
+//       },
+//     },
+//     data: {
+//       scheduledFor: today,
+//       status: 'pending', // Reset to pending for the new day
+//     },
+//   });
 
-  res.json({ success: true, activated: movedTasks.count });
-}
+//   res.json({ success: true, activated: movedTasks.count });
+// }
 
 // ─── GET /api/tasks/history ───────────────────────────────────
 // Returns archived tasks grouped by date.

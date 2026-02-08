@@ -6,6 +6,8 @@ import {MOOD_LABELS } from '../types/mood';
 import type { MoodEntry} from '../types/mood';
 
 export default function Dashboard() {
+  
+  const [dayActive, setDayActive] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [latestMood, setLatestMood] = useState<MoodEntry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
+    loadDayState();
   }, []);
+
 
   async function loadData() {
     setLoading(true);
@@ -45,6 +49,18 @@ export default function Dashboard() {
       setLoading(false);
     }
   }
+  async function loadDayState() {
+  try {
+    const res = await fetch('/api/users/day-state', {
+      credentials: 'include',
+    });
+    const data = await res.json();
+    setDayActive(data.active);
+  } catch (err) {
+    console.error('Failed to load day state', err);
+  }
+  }
+
 
   async function handleCreate() {
     if (!title.trim()) {
@@ -98,14 +114,18 @@ export default function Dashboard() {
   }
 
   async function handleStartDay() {
-    await taskService.startDay();
+    await fetch('/api/users/start-day', { method: 'POST', credentials: 'include' });
+    setDayActive(true);
     await loadData();
   }
 
+
   async function handleEndDay() {
-    await taskService.endDay();
+    await fetch('/api/users/end-day', { method: 'POST', credentials: 'include' });
+    setDayActive(false);
     await loadData();
   }
+
 
   const pending = tasks.filter((t) => t.status === 'pending');
   const done = tasks.filter((t) => t.status === 'done');
@@ -143,12 +163,22 @@ export default function Dashboard() {
         <div className="flex justify-between mb-6">
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
 
-          <button
-            onClick={handleEndDay}
-            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-slate-400 hover:text-white"
-          >
-            End Today
-          </button>
+          {dayActive ? (
+            <button
+              onClick={handleEndDay}
+              className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-slate-400 hover:text-white"
+            >
+              End Today
+            </button>
+          ) : (
+            <button
+              onClick={handleStartDay}
+              className="px-4 py-2 bg-indigo-500 rounded-lg text-sm text-white"
+            >
+              Start Day
+            </button>
+          )}
+
         </div>
 
         {/* MOOD */}

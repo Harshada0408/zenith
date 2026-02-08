@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import moodRoutes from './routes/mood.js';
+import userRoutes from './routes/users.js';
 import taskRoutes from './routes/tasks';
 import { authMiddleware } from './middleware/auth';
 
@@ -16,6 +17,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use('/api/mood', moodRoutes);
+app.use('/api/users', userRoutes);
+
 
 
 // Health check
