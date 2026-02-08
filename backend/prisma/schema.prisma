@@ -58,7 +58,7 @@ model Task {
   description   String?
 
   energy        Int?          // 🔥 optional now
-  priority      String?       // 🔥 NEW
+  priority      Int? // 1=high, 2=medium, 3=low (null=no priority)
 
   timeEstimate  Int?
   focusType     String?
