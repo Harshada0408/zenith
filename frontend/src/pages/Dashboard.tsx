@@ -4,9 +4,10 @@ import { moodService } from '../services/moodService';
 import type { Task, CreateTaskInput, TaskPriority, FocusType, PRIORITY_CONFIG } from '../types/task';
 import {MOOD_LABELS } from '../types/mood';
 import type { MoodEntry} from '../types/mood';
+import { authFetch } from '../utils/authFetch';
 
 export default function Dashboard() {
-  
+  const [startingDay, setStartingDay] = useState(false);
   const [dayActive, setDayActive] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [latestMood, setLatestMood] = useState<MoodEntry | null>(null);
@@ -50,17 +51,14 @@ export default function Dashboard() {
     }
   }
   async function loadDayState() {
-  try {
-    const res = await fetch('/api/users/day-state', {
-      credentials: 'include',
-    });
-    const data = await res.json();
-    setDayActive(data.active);
-  } catch (err) {
-    console.error('Failed to load day state', err);
+    try {
+      const res = await authFetch('/api/users/day-state');
+      const data = await res.json();
+      setDayActive(data.active);
+    } catch (err) {
+      console.error('Failed to load day state', err);
+    }
   }
-  }
-
 
   async function handleCreate() {
     if (!title.trim()) {
@@ -113,18 +111,54 @@ export default function Dashboard() {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }
 
+  // async function handleStartDay() {
+  //   try {
+  //     setStartingDay(true);
+
+  //     await fetch('/api/users/start-day', {
+  //       method: 'POST',
+  //       credentials: 'include',
+  //     });
+
+    
+  //     await loadDayState();
+
+  //     await loadData();
+  //   } catch (err) {
+  //     console.error('Failed to start day', err);
+  //   } finally {
+  //     setStartingDay(false);
+  //   }
+  // }
+
   async function handleStartDay() {
-    await fetch('/api/users/start-day', { method: 'POST', credentials: 'include' });
-    setDayActive(true);
-    await loadData();
+    try {
+      setStartingDay(true);
+
+      const res = await authFetch('/api/users/start-day', {
+        method: 'POST',
+      });
+
+      const data = await res.json();
+      setDayActive(data.active);
+
+      await loadData();
+    } catch (err) {
+      console.error('Failed to start day', err);
+    } finally {
+      setStartingDay(false);
+    }
   }
+
+
 
 
   async function handleEndDay() {
-    await fetch('/api/users/end-day', { method: 'POST', credentials: 'include' });
+    await authFetch('/api/users/end-day', { method: 'POST' });
     setDayActive(false);
     await loadData();
   }
+
 
 
   const pending = tasks.filter((t) => t.status === 'pending');
@@ -173,10 +207,11 @@ export default function Dashboard() {
           ) : (
             <button
               onClick={handleStartDay}
-              className="px-4 py-2 bg-indigo-500 rounded-lg text-sm text-white"
+              disabled={startingDay}
             >
-              Start Day
+              {startingDay ? 'Starting your day… 🌅' : 'Start Day'}
             </button>
+
           )}
 
         </div>
@@ -199,20 +234,17 @@ export default function Dashboard() {
         )}
 
         {/* START DAY */}
-        {movedCount > 0 && (
-          <div className="bg-indigo-900/20 border border-indigo-700 p-4 rounded-xl mb-6 flex justify-between">
+        {movedCount > 0 && !dayActive && (
+          <div className="bg-indigo-900/20 border border-indigo-700 p-4 rounded-xl mb-6">
             <p className="text-indigo-400">
               You have {movedCount} task from yesterday
             </p>
-
-            <button
-              onClick={handleStartDay}
-              className="bg-indigo-500 px-3 py-1 rounded text-sm"
-            >
-              Start Day
-            </button>
+            <p className="text-indigo-300 text-sm mt-1">
+              Start your day to continue working on them.
+            </p>
           </div>
         )}
+
 
         {/* ADD TASK */}
         <div className="mb-6">

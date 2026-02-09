@@ -49,6 +49,32 @@ function getTomorrowStart(): Date {
 
 // backend/src/controllers/taskController.ts
 
+// export async function createTask(req: Request, res: Response) {
+//   const userId = req.user!.id;
+//   const { title, description, priority, timeEstimate, focusType } = req.body;
+
+//   if (!title || !title.trim()) {
+//     return res.status(400).json({ error: 'Title is required' });
+//   }
+
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+
+//   const task = await prisma.task.create({
+//     data: {
+//       userId,
+//       title: title.trim(),
+//       description: description || null,
+//       priority: priority || null,
+//       timeEstimate: timeEstimate ? Number(timeEstimate) : null,
+//       focusType: focusType || null,
+//       scheduledFor: today,
+//     },
+//   });
+
+//   res.status(201).json({ success: true, task });
+// }
+
 export async function createTask(req: Request, res: Response) {
   const userId = req.user!.id;
   const { title, description, priority, timeEstimate, focusType } = req.body;
@@ -56,6 +82,11 @@ export async function createTask(req: Request, res: Response) {
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { activeDayStartedAt: true },
+  });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -69,12 +100,12 @@ export async function createTask(req: Request, res: Response) {
       timeEstimate: timeEstimate ? Number(timeEstimate) : null,
       focusType: focusType || null,
       scheduledFor: today,
+      dayStartedAt: user?.activeDayStartedAt ?? null, // 🔥 THIS IS THE LINK
     },
   });
 
   res.status(201).json({ success: true, task });
 }
-
 
 
 // ─── GET /api/tasks ──────────────────────────────────────────
